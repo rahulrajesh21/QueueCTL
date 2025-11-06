@@ -1,0 +1,27 @@
+{
+  "name": "queuectl",
+  "version": "1.0.0",
+  "description": "CLI-based background job queue system with retry and DLQ support",
+  "main": "index.js",
+  "bin": {
+    "queuectl": "./index.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "dev": "node index.js"
+  },
+  "keywords": [
+    "queue",
+    "job-queue",
+    "background-jobs",
+    "worker",
+    "cli",
+    "dlq"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "commander": "^12.1.0"
+  }
+}
