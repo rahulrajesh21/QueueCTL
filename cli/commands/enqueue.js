@@ -1,4 +1,4 @@
-import queue from '../../core/queue'
+import queue from '../../core/queue.js'
 
 
 export function enqueueCommand(program){
