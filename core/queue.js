@@ -73,6 +73,28 @@ class Queue {
 
     }
 
+    complete(jobId){
+        const now = Date.now();
+
+        const job = this.storage.getJob(jobId);
+
+        if(!job){
+            throw new Error(`Job ${jobId} not found`)
+
+        }
+
+        const updatedJob = {
+            ...job,
+            state: 'completed',
+            updated_at: now,
+            locked_by:  null,
+            locked_at: null
+        }
+
+        this.storage.deleteJob(jobId);
+        this.storage.insertJob(updatedJob);
+    }
+
     moveToDLQ(jobId, error = null){
         const job = this.storage.getJob(jobId);
         if(!job){
