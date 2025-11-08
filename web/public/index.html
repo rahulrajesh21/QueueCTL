@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueueCTL Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QueueCTL Dashboard</h1>
+      <p class="subtitle">Background Job Queue Monitoring</p>
+    </header>
+
+    <!-- Stats Section -->
+    <section class="stats-section">
+      <h2>Statistics</h2>
+      <div class="stats-grid" id="stats">
+        <div class="stat-card">
+          <div class="stat-value">-</div>
+          <div class="stat-label">Pending</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">-</div>
+          <div class="stat-label">Processing</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">-</div>
+          <div class="stat-label">Completed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">-</div>
+          <div class="stat-label">Failed</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value">-</div>
+          <div class="stat-label">Dead (DLQ)</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Jobs Section -->
+    <section class="jobs-section">
+      <h2>Recent Jobs</h2>
+      <div class="filter-buttons">
+        <button class="filter-btn active" onclick="filterJobs(null)">All</button>
+        <button class="filter-btn" onclick="filterJobs('pending')">Pending</button>
+        <button class="filter-btn" onclick="filterJobs('processing')">Processing</button>
+        <button class="filter-btn" onclick="filterJobs('completed')">Completed</button>
+        <button class="filter-btn" onclick="filterJobs('failed')">Failed</button>
+      </div>
+      <div id="jobs" class="jobs-list">
+        <p class="loading">Loading jobs...</p>
+      </div>
+    </section>
+
+    <!-- DLQ Section -->
+    <section class="dlq-section">
+      <h2>Dead Letter Queue</h2>
+      <div id="dlq" class="jobs-list">
+        <p class="loading">Loading DLQ...</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Last updated: <span id="lastUpdate">-</span></p>
+      <p>Auto-refresh every 5 seconds</p>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

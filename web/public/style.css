@@ -1,0 +1,222 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  padding: 30px;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+h1 {
+  color: #333;
+  font-size: 2.5em;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1.1em;
+}
+
+h2 {
+  color: #444;
+  margin-bottom: 20px;
+  font-size: 1.5em;
+}
+
+/* Stats Grid */
+.stats-section {
+  margin-bottom: 40px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 25px;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+}
+
+.stat-value {
+  font-size: 2.5em;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+/* Filter Buttons */
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 2px solid #667eea;
+  background: white;
+  color: #667eea;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+.filter-btn.active {
+  background: #667eea;
+  color: white;
+}
+
+/* Jobs List */
+.jobs-section, .dlq-section {
+  margin-bottom: 40px;
+}
+
+.jobs-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.job-card {
+  background: #f8f9fa;
+  border-left: 4px solid #667eea;
+  padding: 15px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.job-card:hover {
+  background: #e9ecef;
+  transform: translateX(5px);
+}
+
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.job-id {
+  font-family: monospace;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.job-state {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.state-pending { background: #ffc107; color: #000; }
+.state-processing { background: #2196F3; color: white; }
+.state-completed { background: #4CAF50; color: white; }
+.state-failed { background: #f44336; color: white; }
+.state-dead { background: #9e9e9e; color: white; }
+
+.job-command {
+  font-family: monospace;
+  background: white;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-size: 0.9em;
+}
+
+.job-meta {
+  display: flex;
+  gap: 15px;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.job-error {
+  color: #f44336;
+  font-size: 0.85em;
+  margin-top: 8px;
+}
+
+.retry-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  margin-top: 8px;
+}
+
+.retry-btn:hover {
+  background: #45a049;
+}
+
+.loading {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
+.empty {
+  text-align: center;
+  color: #999;
+  padding: 40px;
+  font-style: italic;
+}
+
+footer {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 2px solid #f0f0f0;
+  color: #666;
+  font-size: 0.9em;
+}
+
+footer p {
+  margin: 5px 0;
+}

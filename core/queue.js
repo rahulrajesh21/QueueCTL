@@ -143,7 +143,7 @@ class Queue {
             total: 0
         };
         
-        // Get job counts by state
+        
         const allJobs = this.storage.listJob();
         allJobs.forEach(job => {
             if (stats[job.state] !== undefined) {
@@ -152,7 +152,7 @@ class Queue {
             }
         });
         
-        // Get DLQ count
+        
         const dlqJobs = this.storage.listDLQ();
         stats.dead = dlqJobs.length;
         stats.total += dlqJobs.length;
