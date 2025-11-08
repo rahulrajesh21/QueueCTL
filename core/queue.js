@@ -16,12 +16,14 @@ class Queue {
 
         const now = Date.now();
         
+        const defaultMaxRetries = parseInt(this.storage.getConfig('max_retries') || '3');
+        
         const job = {
             id: jobData.id || randomUUID(),
             command: jobData.command,
             state: 'pending',
             attempts: 0,
-            max_retries: jobData.max_retries || 3,
+            max_retries: jobData.max_retries || defaultMaxRetries,
             next_retry_at: null,
             locked_at: null,
             locked_by: null,
@@ -63,6 +65,7 @@ class Queue {
         }
 
         const backoffBase = parseInt(this.storage.getConfig('backoff_base') || '2');
+        
         const nextRetryAt = calculateNextRetry(attempts, backoffBase);
 
         const updatedJob = {
