@@ -51,7 +51,7 @@ export function workerCommand(program) {
         return;
       }
 
-      workers.forEach(pid => {  // Fixed: workers (not worker)
+      workers.forEach(pid => { 
         try {
           process.kill(pid, 'SIGTERM');
           console.log(`✓ Stopped worker ${pid}`);

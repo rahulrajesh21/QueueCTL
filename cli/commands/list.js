@@ -13,7 +13,7 @@ export function listCommand(program){
                 console.log(`No jobs found with state: ${options.state}`)
                 return
             }
-            const stateFilter = options.state ? `(${option.state})`:'';
+            const stateFilter = options.state ? `(${options.state})`:'';
             console.log(`\nFound ${jobs.length} job(s)${stateFilter}:\n`);
             jobs.forEach(job => {
           console.log(`ID: ${job.id}`);

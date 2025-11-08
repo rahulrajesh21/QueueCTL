@@ -3,18 +3,18 @@ import executor from "./executor.js";
 
 class Worker{
     constructor(){
-        this.workerId = process.id;
+        this.workerId = process.pid;
         this.running = true;
     }
 
     async start(){
         this.running = true
 
-        console.log(`[Worker ${this.WorkerId}] Started`);
+        console.log(`[Worker ${this.workerId}] Started`);
         while(this.running){
             try{
 
-                const job = queue.claim(this.WorkerId);
+                const job = queue.claim(this.workerId);
                 if(job){
                     console.log(`[Worker ${this.workerId}] Processing job ${job.id}: ${job.command}`);
 
@@ -25,13 +25,13 @@ class Worker{
                         console.log(`[Worker ${this.workerId}] ✓ Completed job ${job.id}`);
                     }else{
                         queue.fail(job.id,result.error);
-                        console.log(`[Worker ${this.workerId}] ✓ Completed job ${job.id}`);
+                        console.log(`[Worker ${this.workerId}] ✗ Failed job ${job.id}: ${result.error.message}`);
                     }
                 }else{
                     await this.sleep(1000);
                 }
             }catch(error){
-                console.log(`[Worker ${this.WorkerId}] Error:`,error.message);
+                console.log(`[Worker ${this.workerId}] Error:`,error.message);
                 await this.sleep(1000);
             }
         }

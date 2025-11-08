@@ -18,8 +18,14 @@ export function dlqCommand(program){
         jobs.forEach(job => {
           console.log(`ID: ${job.id}`);
           console.log(`  Command: ${job.command}`);
+          console.log(`  State: ${job.state}`);
+          console.log(`  Attempts: ${job.attempts}/${job.max_retries}`);
           console.log(`  Error: ${job.error || 'Unknown error'}`);
-          console.log(`  Attempts: ${job.attempts}`);
+          const createdDate = new Date(job.created_at);
+          const failedDate = new Date(job.updated_at);
+          console.log(`  Created: ${createdDate.toLocaleString()}`);
+          console.log(`  Failed: ${failedDate.toLocaleString()}`);
+          
           console.log('');
         });
         }catch(error){

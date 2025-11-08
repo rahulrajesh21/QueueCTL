@@ -107,35 +107,36 @@ class Storage{
     return this.db.prepare('SELECT * FROM jobs WHERE id = ?').get(jobId)
   }
 
-  claimJobs(workerId,now){
-    return this.db.transaction(()=>{
-       const availableJob = this.storage.db.prepare(`
+  claimJobs(workerId, now){
+    return this.db.transaction(() => {
+       const availableJob = this.db.prepare(`
                 SELECT * FROM jobs
-                WHERE state = 'pending'
-                AND (next_retry_at is NULL OR next_retry_at <= ?)
+                WHERE (state = 'pending' OR state = 'failed')
+                AND (next_retry_at IS NULL OR next_retry_at <= ?)
                 ORDER BY created_at ASC
                 LIMIT 1
-                `).get(now)
+                `).get(now);
 
-                if(!availableJob){
+                if (!availableJob) {
                     return null;
                 }
-                this.storage.db.prepare(`
+                
+                this.db.prepare(`
                     UPDATE jobs
                     SET state = 'processing',
-                    locked_by = ?,
-                    locked_at = ?,
-                    update_at = ?
+                        locked_by = ?,
+                        locked_at = ?,
+                        updated_at = ?
                     WHERE id = ?
-                    `).run(workerId,now,now,availableJob.id);
+                    `).run(workerId, now, now, availableJob.id);
 
-                    return{
+                    return {
                         ...availableJob,
-                        status:'processing',
-                        locked_by:workerId,
-                        locked_at:now,
-                        updated_at:now
-                    }
+                        state: 'processing',
+                        locked_by: workerId,
+                        locked_at: now,
+                        updated_at: now
+                    };
     })();
   }
 
@@ -167,10 +168,13 @@ class Storage{
   }
 
   listJob(state = null){
-    if (state){
+    if(state === 'dead'){
+      return this.db.prepare('SELECT * FROM dlq ORDER BY updated_at DESC').all();
+    }else if (state) {
       return this.db.prepare('SELECT * FROM jobs WHERE state = ? ORDER BY created_at DESC').all(state);
+    }else{
+      return this.db.prepare('SELECT * FROM jobs ORDER BY created_at DESC').all();
     }
-    return this.db.prepare('SELECT * FROM jobs ORDER BY created_at DESC').all();
   }
 
   listDLQ(){
@@ -181,11 +185,34 @@ class Storage{
     return this.db.prepare('SELECT * FROM dlq WHERE id = ?').get(jobID);
   }
 
+  deleteFromDLQ(jobId) {
+    return this.db.prepare('DELETE FROM dlq WHERE id = ?').run(jobId);
+  }
 
+  getConfig(key) {
+    const row = this.db.prepare('SELECT value FROM config WHERE key = ?').get(key);
+    return row ? row.value : null;
+  }
 
+  setConfig(key, value) {
+    this.db.prepare(`
+      INSERT INTO config (key, value) VALUES (?, ?)
+      ON CONFLICT(key) DO UPDATE SET value = ?
+    `).run(key, value, value);
+  }
 
-   
+  getAllConfig() {
+    const rows = this.db.prepare('SELECT key, value FROM config').all();
+    const config = {};
+    rows.forEach(row => {
+      config[row.key] = row.value;
+    });
+    return config;
+  }
 
+  close() {
+    this.db.close();
+  }
 }
 
 

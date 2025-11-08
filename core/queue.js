@@ -50,7 +50,16 @@ class Queue {
         const now = Date.now();
 
         if(attempts >= job.max_retries){
-            return this.moveToDLQ(jobId,error)
+           
+            const failedJob = {
+                ...job,
+                attempts: attempts,
+                error: error.message || String(error),
+                updated_at: now
+            };
+            this.storage.deleteJob(jobId);
+            this.storage.insertJob(failedJob);
+            return this.moveToDLQ(jobId, error);
         }
 
         const backoffBase = parseInt(this.storage.getConfig('backoff_base') || '2');
@@ -58,12 +67,13 @@ class Queue {
 
         const updatedJob = {
             ...job,
-            attempts:attempts,
-            nextRetryAt:nextRetryAt,
-            updated_at:now,
-            error:error.message || String(error),
-            locked_at:null,
-            locked_by:null
+            state: 'failed',
+            attempts: attempts,
+            next_retry_at: nextRetryAt,
+            updated_at: now,
+            error: error.message || String(error),
+            locked_at: null,
+            locked_by: null
         };
 
         this.storage.deleteJob(jobId);
@@ -107,7 +117,10 @@ class Queue {
             ...job,
             state: 'dead',
             error: error ? (error.message || String(error)) : job.error,
-            updated_at: now
+            updated_at: now,
+            locked_by: null,
+            locked_at: null,
+            next_retry_at: null
         };
 
         this.storage.insertIntoDLQ(deadJob);
@@ -117,10 +130,7 @@ class Queue {
     }
 
     listJobs(state = null){
-        if (state) {
-            return this.storage.db.prepare('SELECT * FROM jobs WHERE state = ? ORDER BY created_at DESC').all(state);
-        }
-        return this.storage.db.prepare('SELECT * FROM jobs ORDER BY created_at DESC').all();
+        return this.storage.listJob(state);
     }
 
     getStats(){
@@ -133,16 +143,19 @@ class Queue {
             total: 0
         };
         
-        const rows = this.storage.db.prepare('SELECT state, COUNT(*) as count FROM jobs GROUP BY state').all();
-        
-        rows.forEach(row => {
-            stats[row.state] = row.count;
-            stats.total += row.count;
+        // Get job counts by state
+        const allJobs = this.storage.listJob();
+        allJobs.forEach(job => {
+            if (stats[job.state] !== undefined) {
+                stats[job.state]++;
+                stats.total++;
+            }
         });
         
-        const dlqCount = this.storage.db.prepare('SELECT COUNT(*) as count FROM dlq').get();
-        stats.dead = dlqCount.count;
-        stats.total += dlqCount.count;
+        // Get DLQ count
+        const dlqJobs = this.storage.listDLQ();
+        stats.dead = dlqJobs.length;
+        stats.total += dlqJobs.length;
         
         return stats;
     }
@@ -167,7 +180,7 @@ class Queue {
         };
         
         this.storage.insertJob(retriedJob);
-        this.storage.db.prepare('DELETE FROM dlq WHERE id = ?').run(jobId);
+        this.storage.deleteFromDLQ(jobId);
         
         return retriedJob;
     }
