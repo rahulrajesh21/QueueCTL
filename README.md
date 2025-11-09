@@ -55,103 +55,24 @@ cd queuectl
 # Install dependencies
 npm install
 
-# Make CLI executable (optional)
-npm link
+# Install globally to use 'queuectl' command
+npm install -g .
 ```
 
-## Usage
+## Quick Start
 
-### Basic Commands
-
-#### 1. Enqueue a Job
 ```bash
-# Simple command
-node index.js enqueue '{"command":"echo Hello World"}'
+# 1. Enqueue a job
+queuectl enqueue '{"command":"echo Hello World"}'
 
-# With custom retry settings
-node index.js enqueue '{"command":"sleep 2","max_retries":5,"timeout":10}'
+# 2. Start a worker
+queuectl worker start
 
-# Scheduled job (delayed execution)
-node index.js enqueue '{"command":"echo Delayed","run_at":"2025-11-10T10:00:00Z"}'
-```
+# 3. Check status
+queuectl status
 
-#### 2. Start Workers
-```bash
-# Start single worker (foreground)
-node index.js worker start
-
-# Start multiple workers (background)
-node index.js worker start --count 3
-
-# Stop all workers
-node index.js worker stop
-```
-
-#### 3. Check Status
-```bash
-node index.js status
-```
-**Output:**
-```
-Queue Status
-
-Jobs:
-  Pending:     5
-  Processing:  2
-  Completed:   10
-  Failed:      1
-  Dead (DLQ):  0
-  ─────────────────────
-  Total:       18
-```
-
-#### 4. List Jobs
-```bash
-# List all jobs
-node index.js list
-
-# Filter by state
-node index.js list --state pending
-node index.js list --state completed
-node index.js list --state failed
-```
-
-#### 5. View Job Output
-```bash
-node index.js logs <job-id>
-```
-**Output:**
-```
-Job: abc-123-def
-Command: echo Hello World
-State: completed
-
---- Output ---
-Hello World
---- End ---
-```
-
-#### 6. Manage Dead Letter Queue
-```bash
-# List failed jobs in DLQ
-node index.js dlq list
-
-# Retry a job from DLQ
-node index.js dlq retry <job-id>
-```
-
-#### 7. Configuration
-```bash
-# Set configuration
-node index.js config set max-retries 5
-node index.js config set backoff-base 2
-node index.js config set default-timeout 60
-
-# Get configuration
-node index.js config get max-retries
-
-# List all configuration
-node index.js config list
+# 4. View all commands
+queuectl --help
 ```
 
 ### Web Dashboard
@@ -291,17 +212,17 @@ chmod +x tests/test-logs.sh
 ### Manual Testing
 ```bash
 # Terminal 1: Start worker
-node index.js worker start
+queuectl worker start
 
 # Terminal 2: Enqueue jobs
-node index.js enqueue '{"command":"echo Test 1"}'
-node index.js enqueue '{"command":"sleep 2"}'
-node index.js enqueue '{"command":"invalid_cmd","max_retries":1}'
+queuectl enqueue '{"command":"echo Test 1"}'
+queuectl enqueue '{"command":"sleep 2"}'
+queuectl enqueue '{"command":"invalid_cmd","max_retries":1}'
 
 # Check status
-node index.js status
-node index.js list
-node index.js dlq list
+queuectl status
+queuectl list
+queuectl dlq list
 ```
 
 ## Configuration
@@ -320,33 +241,33 @@ QueueCTL provides configurable settings that control retry behavior, backoff tim
 
 **Set a configuration value:**
 ```bash
-node index.js config set <key> <value>
+queuectl config set <key> <value>
 ```
 
 **Examples:**
 ```bash
 # Increase retry attempts to 5
-node index.js config set max-retries 5
+queuectl config set max-retries 5
 
 # Use slower backoff (3^attempts instead of 2^attempts)
-node index.js config set backoff-base 3
+queuectl config set backoff-base 3
 
 # Set default timeout to 2 minutes
-node index.js config set default-timeout 120
+queuectl config set default-timeout 120
 ```
 
 **Get a specific configuration value:**
 ```bash
-node index.js config get <key>
+queuectl config get <key>
 
 # Example
-node index.js config get max-retries
+queuectl config get max-retries
 # Output: max-retries = 3
 ```
 
 **List all configuration:**
 ```bash
-node index.js config list
+queuectl config list
 
 # Output:
 # Configuration:
@@ -367,7 +288,7 @@ node index.js config list
 - Existing jobs retain their original settings
 - Per-job overrides can be specified during enqueue:
   ```bash
-  node index.js enqueue '{"command":"...","max_retries":10,"timeout":300}'
+  queuectl enqueue '{"command":"...","max_retries":10,"timeout":300}'
   ```
 
 ### Retry Calculation Examples
@@ -393,19 +314,19 @@ After 4 failed attempts: Job moves to DLQ
 
 **For fast-failing jobs (network requests, API calls):**
 ```bash
-node index.js config set max-retries 5
-node index.js config set backoff-base 2
+queuectl config set max-retries 5
+queuectl config set backoff-base 2
 ```
 
 **For transient failures (temporary service outages):**
 ```bash
-node index.js config set max-retries 3
-node index.js config set backoff-base 3
+queuectl config set max-retries 3
+queuectl config set backoff-base 3
 ```
 
 **For long-running jobs (data processing, backups):**
 ```bash
-node index.js config set default-timeout 300
+queuectl config set default-timeout 300
 ```
 
 ## Design Decisions & Trade-offs
@@ -435,22 +356,22 @@ node index.js config set default-timeout 300
 
 ### 1. Image Processing Pipeline
 ```bash
-node index.js enqueue '{"command":"convert input.jpg -resize 800x600 output.jpg"}'
+queuectl enqueue '{"command":"convert input.jpg -resize 800x600 output.jpg"}'
 ```
 
 ### 2. Batch Email Sending
 ```bash
-node index.js enqueue '{"command":"node send-email.js user@example.com"}'
+queuectl enqueue '{"command":"node send-email.js user@example.com"}'
 ```
 
 ### 3. Database Backup
 ```bash
-node index.js enqueue '{"command":"pg_dump mydb > backup.sql","timeout":300}'
+queuectl enqueue '{"command":"pg_dump mydb > backup.sql","timeout":300}'
 ```
 
 ### 4. Scheduled Reports
 ```bash
-node index.js enqueue '{"command":"node generate-report.js","run_at":"2025-11-10T09:00:00Z"}'
+queuectl enqueue '{"command":"node generate-report.js","run_at":"2025-11-10T09:00:00Z"}'
 ```
 
 ## Demo Video
