@@ -8,8 +8,11 @@
     "queuectl": "./index.js"
   },
   "scripts": {
-    "test": "node --test",
-    "dev": "node index.js"
+    "test": "./test.sh",
+    "test:logs": "./tests/test-logs.sh",
+    "test:all": "npm run test && npm run test:logs",
+    "dev": "node index.js",
+    "start:web": "node web/server.js"
   },
   "keywords": [
     "queue",

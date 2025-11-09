@@ -79,7 +79,7 @@ queuectl --help
 
 Start the web monitoring dashboard:
 ```bash
-node web/server.js
+npm run start:web
 ```
 Then open http://localhost:3000 in your browser.
 
@@ -189,14 +189,17 @@ SQLite's `busy_timeout` handles lock contention gracefully.
 
 **Integration Tests:**
 ```bash
-chmod +x test.sh
-./test.sh
+npm test
 ```
 
 **Output Logging Tests:**
 ```bash
-chmod +x tests/test-logs.sh
-./tests/test-logs.sh
+npm run test:logs
+```
+
+**Run All Tests:**
+```bash
+npm run test:all
 ```
 
 ### Test Coverage
