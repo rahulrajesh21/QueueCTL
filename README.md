@@ -6,7 +6,7 @@ Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets
 
 ## Demo Video
 
-![How to use QueueCTL][https://drive.google.com/file/d/1xKyw0fBLFVEaf4vJn2hq2MnegpRBC9Vi/view?usp=share_link]
+- [How to use QueueCTL](https://drive.google.com/file/d/1xKyw0fBLFVEaf4vJn2hq2MnegpRBC9Vi/view?usp=share_link)
 
 ## Table of Contents
 
