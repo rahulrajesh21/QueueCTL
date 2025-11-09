@@ -28,10 +28,28 @@ export function configCommand(program){
     .description("Set configuration value")
     .action((key,value)=>{
         try{
-            storage.setConfig(key,value);
+            // Normalize key: convert hyphens to underscores for storage
+            const normalizedKey = key.replace(/-/g, '_');
+            
+            // Validate configuration keys
+            const validKeys = ['max_retries', 'backoff_base', 'default_timeout'];
+            if (!validKeys.includes(normalizedKey)) {
+                console.error(`Error: Invalid config key '${key}'`);
+                console.log(`Valid keys: ${validKeys.map(k => k.replace(/_/g, '-')).join(', ')}`);
+                process.exit(1);
+            }
+            
+            // Validate value is a positive number
+            const numValue = parseInt(value);
+            if (isNaN(numValue) || numValue <= 0) {
+                console.error(`Error: Value must be a positive number`);
+                process.exit(1);
+            }
+            
+            storage.setConfig(normalizedKey, value);
             console.log(`Successfully set ${key} = ${value}`)
         }catch(error){
-            console.log('Error',error.message);
+            console.error('Error:',error.message);
             process.exit(1);
         }
     })
@@ -45,9 +63,29 @@ export function configCommand(program){
         const allConfig = storage.getAllConfig();
         console.log('\nConfiguration:\n');
         Object.entries(allConfig).forEach(([key, value]) => {
-          console.log(`  ${key} = ${value}`);
+          // Display with hyphens for consistency
+          const displayKey = key.replace(/_/g, '-');
+          console.log(`  ${displayKey} = ${value}`);
         });
         console.log('');
+      } catch (error) {
+        console.error('Error:', error.message);
+        process.exit(1);
+      }
+    });
+
+    config
+    .command('reset')
+    .description('Reset configuration to defaults')
+    .action(() => {
+      try {
+        storage.setConfig('max_retries', '3');
+        storage.setConfig('backoff_base', '2');
+        storage.setConfig('default_timeout', '60');
+        console.log('Configuration reset to defaults:');
+        console.log('  max-retries = 3');
+        console.log('  backoff-base = 2');
+        console.log('  default-timeout = 60');
       } catch (error) {
         console.error('Error:', error.message);
         process.exit(1);
