@@ -18,14 +18,14 @@ class Worker{
                 if(job){
                     console.log(`[Worker ${this.workerId}] Processing job ${job.id}: ${job.command}`);
 
-                    const result = await executor.run(job.command);
+                    const result = await executor.run(job.command,job.timeout);
 
                     if(result.success){
-                        queue.complete(job.id);
-                        console.log(`[Worker ${this.workerId}] ✓ Completed job ${job.id}`);
+                        queue.complete(job.id, result.output);
+                        console.log(`[Worker ${this.workerId}] Completed job ${job.id}`);
                     }else{
-                        queue.fail(job.id,result.error);
-                        console.log(`[Worker ${this.workerId}] ✗ Failed job ${job.id}: ${result.error.message}`);
+                        queue.fail(job.id,result.error,result.output);
+                        console.log(`[Worker ${this.workerId}] Failed job ${job.id}: ${result.error.message}`);
                     }
                 }else{
                     await this.sleep(1000);

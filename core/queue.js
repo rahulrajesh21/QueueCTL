@@ -17,14 +17,23 @@ class Queue {
         const now = Date.now();
         
         const defaultMaxRetries = parseInt(this.storage.getConfig('max_retries') || '3');
-        
+        let runAt = null;
+        if(jobData.run_at){
+            runAt = new Date(jobData.runAt).getTime();
+            if(isNaN(runAt)){
+                throw new Error('Invalid run_at timestamp');
+            }
+        }
+        const defaultTimeout = parseInt(this.storage.getConfig('default_timeout') || '60');
         const job = {
             id: jobData.id || randomUUID(),
             command: jobData.command,
             state: 'pending',
             attempts: 0,
             max_retries: jobData.max_retries || defaultMaxRetries,
+            timeout: jobData.timeout || defaultTimeout,
             next_retry_at: null,
+            run_at:runAt,
             locked_at: null,
             locked_by: null,
             created_at: now,
@@ -42,7 +51,7 @@ class Queue {
         return this.storage.claimJobs(workerId,now);
     }
 
-    fail(jobId,error){
+    fail(jobId, error, output = null){
 
         const job = this.storage.getJob(jobId);
         if(!job){
@@ -57,11 +66,12 @@ class Queue {
                 ...job,
                 attempts: attempts,
                 error: error.message || String(error),
-                updated_at: now
+                output: output,
+                updated_at: now,
             };
             this.storage.deleteJob(jobId);
             this.storage.insertJob(failedJob);
-            return this.moveToDLQ(jobId, error);
+            return this.moveToDLQ(jobId, error, output);
         }
 
         const backoffBase = parseInt(this.storage.getConfig('backoff_base') || '2');
@@ -75,6 +85,7 @@ class Queue {
             next_retry_at: nextRetryAt,
             updated_at: now,
             error: error.message || String(error),
+            output: output,
             locked_at: null,
             locked_by: null
         };
@@ -86,7 +97,7 @@ class Queue {
 
     }
 
-    complete(jobId){
+    complete(jobId, output = null){
         const now = Date.now();
 
         const job = this.storage.getJob(jobId);
@@ -101,14 +112,15 @@ class Queue {
             state: 'completed',
             updated_at: now,
             locked_by:  null,
-            locked_at: null
+            locked_at: null,
+            output: output
         }
 
         this.storage.deleteJob(jobId);
         this.storage.insertJob(updatedJob);
     }
 
-    moveToDLQ(jobId, error = null){
+    moveToDLQ(jobId, error = null,output = null){
         const job = this.storage.getJob(jobId);
         if(!job){
             throw new Error(`Job ${jobId} not found`);
@@ -120,6 +132,7 @@ class Queue {
             ...job,
             state: 'dead',
             error: error ? (error.message || String(error)) : job.error,
+             output: output || job.output,
             updated_at: now,
             locked_by: null,
             locked_at: null,

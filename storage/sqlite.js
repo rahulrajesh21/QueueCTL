@@ -23,13 +23,16 @@ class Storage{
         state TEXT NOT NULL,
         attempts INTEGER DEFAULT 0,
         max_retries INTEGER DEFAULT 3,
+        timeout INTEGER DEFAULT 60,
         next_retry_at INTEGER,
+        run_at INTEGER,
         locked_at INTEGER,
         locked_by TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         completed_at INTEGER,
-        error TEXT
+        error TEXT,
+        output TEXT
       )
             `)
 
@@ -46,8 +49,9 @@ class Storage{
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL,
         completed_at INTEGER,
-        error TEXT
-      )
+        error TEXT,
+        output TEXT 
+  )
     `);
 
     this.db.exec(`
@@ -62,7 +66,8 @@ class Storage{
     setDefaultConfig() {
     const defaults = {
       max_retries: '3',
-      backoff_base: '2'
+      backoff_base: '2',
+      default_timeout: '60' 
     };
     
     for (const [key, value] of Object.entries(defaults)) {
@@ -77,10 +82,10 @@ class Storage{
   insertJob(job){
     const stmt = this.db.prepare(`
       INSERT INTO jobs (
-        id, command, state, attempts, max_retries,
-        next_retry_at, locked_at, locked_by,
-        created_at, updated_at, completed_at, error
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        id, command, state, attempts, max_retries, timeout,
+        next_retry_at, run_at, locked_at, locked_by,
+        created_at, updated_at, completed_at, error, output
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -89,13 +94,16 @@ class Storage{
         job.state,
         job.attempts,
         job.max_retries,
+        job.timeout, 
         job.next_retry_at,
+        job.run_at,
         job.locked_at,
         job.locked_by,
         job.created_at,
         job.updated_at,
         job.completed_at,
-        job.error
+        job.error,
+        job.output || null
       )
       return job;
   }
@@ -114,9 +122,10 @@ class Storage{
                 SELECT * FROM jobs
                 WHERE (state = 'pending' OR state = 'failed')
                 AND (next_retry_at IS NULL OR next_retry_at <= ?)
+                AND (run_at IS NULL OR run_at <= ?)
                 ORDER BY created_at ASC
                 LIMIT 1
-                `).get(now);
+                `).get(now,now);
 
                 if (!availableJob) {
                     return null;
@@ -148,8 +157,8 @@ class Storage{
         INSERT INTO dlq(
          id, command, state, attempts, max_retries,
         next_retry_at, locked_at, locked_by,
-        created_at, updated_at, completed_at, error
-        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        created_at, updated_at, completed_at, error, output
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
@@ -164,7 +173,8 @@ class Storage{
         job.created_at,
         job.updated_at,
         job.completed_at,
-        job.error
+        job.error,
+        job.output || null
       );
   }
 

@@ -7,6 +7,7 @@ import { statusCommand } from './cli/commands/status.js';
 import { listCommand } from './cli/commands/list.js';
 import { dlqCommand } from './cli/commands/dlq.js';
 import { configCommand } from './cli/commands/config.js';
+import { logsCommand } from './cli/commands/logs.js';
 
 program
   .name('queuectl')
@@ -20,5 +21,5 @@ statusCommand(program);
 listCommand(program);
 dlqCommand(program);
 configCommand(program);
-
+logsCommand(program);
 program.parse(process.argv);
