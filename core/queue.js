@@ -25,10 +25,18 @@ class Queue {
             }
         }
         const defaultTimeout = parseInt(this.storage.getConfig('default_timeout') || '60');
+        
+        // Validate priority
+        let priority = jobData.priority !== undefined ? jobData.priority : 0;
+        if (priority < 0 || priority > 3) {
+            throw new Error('Priority must be between 0 (low) and 3 (urgent)');
+        }
+        
         const job = {
             id: jobData.id || randomUUID(),
             command: jobData.command,
             state: 'pending',
+            priority: priority,
             attempts: 0,
             max_retries: jobData.max_retries || defaultMaxRetries,
             timeout: jobData.timeout || defaultTimeout,
@@ -39,7 +47,8 @@ class Queue {
             created_at: now,
             updated_at: now,
             completed_at: null,
-            error: null
+            error: null,
+            output: null
         };
         
         this.storage.insertJob(job);
@@ -203,6 +212,45 @@ class Queue {
 
     listDLQ(){
         return this.storage.listDLQ();
+    }
+
+    getMetrics(){
+        const allJobs = this.storage.listJob();
+        const dlqJobs = this.storage.listDLQ();
+        const completedJobs = allJobs.filter(j => j.state === 'completed');
+        
+        // Calculate execution time statistics
+        let avgExecutionTime = null;
+        let minExecutionTime = null;
+        let maxExecutionTime = null;
+        
+        if (completedJobs.length > 0) {
+            const executionTimes = completedJobs
+                .filter(j => j.updated_at && (j.locked_at || j.created_at))
+                .map(j => {
+                    // Use locked_at if available (actual execution time), otherwise fall back to created_at
+                    const startTime = j.locked_at || j.created_at;
+                    return (j.updated_at - startTime) / 1000;
+                });
+            
+            if (executionTimes.length > 0) {
+                avgExecutionTime = executionTimes.reduce((a, b) => a + b, 0) / executionTimes.length;
+                minExecutionTime = Math.min(...executionTimes);
+                maxExecutionTime = Math.max(...executionTimes);
+            }
+        }
+        
+        // Retry statistics
+        const jobsWithRetries = allJobs.filter(j => j.attempts > 0).length;
+        const totalRetries = allJobs.reduce((sum, j) => sum + j.attempts, 0);
+        
+        return {
+            avgExecutionTime,
+            minExecutionTime,
+            maxExecutionTime,
+            jobsWithRetries,
+            totalRetries
+        };
     }
 }
 

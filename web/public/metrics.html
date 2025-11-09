@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QueueCTL Metrics</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>QueueCTL Metrics</h1>
+      <p class="subtitle">Performance Statistics & Analytics</p>
+      <nav class="nav-links">
+        <a href="index.html">Dashboard</a>
+        <a href="metrics.html" class="active">Metrics</a>
+      </nav>
+    </header>
+
+    <!-- Performance Metrics -->
+    <section class="stats-section">
+      <div class="stats-header">
+        <h2>Performance</h2>
+      </div>
+      <div class="metrics-grid" id="performance-metrics">
+        <p class="loading">Loading metrics...</p>
+      </div>
+    </section>
+
+    <!-- Execution Statistics -->
+    <section class="stats-section">
+      <div class="stats-header">
+        <h2>Execution Statistics</h2>
+      </div>
+      <div class="metrics-grid" id="execution-metrics">
+        <p class="loading">Loading metrics...</p>
+      </div>
+    </section>
+
+    <!-- Retry Statistics -->
+    <section class="stats-section">
+      <div class="stats-header">
+        <h2>Retry Statistics</h2>
+      </div>
+      <div class="metrics-grid-small" id="retry-metrics">
+        <p class="loading">Loading metrics...</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Last updated: <span id="lastUpdate">-</span></p>
+      <p>Auto-refresh every 5 seconds</p>
+    </footer>
+  </div>
+
+  <script src="metrics.js"></script>
+</body>
+</html>

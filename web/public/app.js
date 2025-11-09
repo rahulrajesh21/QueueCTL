@@ -83,10 +83,14 @@ async function loadJobs(state = null) {
       return;
     }
     
+    const priorityLabels = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+    const priorityColors = ['#666', '#888', '#ffa500', '#ff6b6b'];
+    
     jobsDiv.innerHTML = jobs.slice(0, 20).map(job => `
       <div class="job-card">
         <div class="job-header">
           <span class="job-id">${job.id}</span>
+          <span class="job-priority" style="background: ${priorityColors[job.priority || 0]}; padding: 4px 10px; border-radius: 4px; font-size: 0.7em; font-weight: 600; margin: 0 8px;">${priorityLabels[job.priority || 0]}</span>
           <span class="job-state state-${job.state}">${job.state.toUpperCase()}</span>
         </div>
         <div class="job-command">${escapeHtml(job.command)}</div>
@@ -117,7 +121,7 @@ async function loadDLQ() {
     const dlqDiv = document.getElementById('dlq');
     
     if (jobs.length === 0) {
-      dlqDiv.innerHTML = '<p class="empty">DLQ is empty ✨</p>';
+      dlqDiv.innerHTML = '<p class="empty">DLQ is empty</p>';
       return;
     }
     

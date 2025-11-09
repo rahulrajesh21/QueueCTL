@@ -1,9 +1,16 @@
 import Database from "better-sqlite3";
 import { existsSync, mkdirSync } from 'node:fs';
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
+import { homedir } from 'node:os';
 
 class Storage{
-    constructor(dbPath='./data/queuectl.db'){
+    constructor(dbPath){
+        // Use environment variable or default to home directory
+        if (!dbPath) {
+            const dataDir = process.env.QUEUECTL_DATA_DIR || join(homedir(), '.queuectl');
+            dbPath = join(dataDir, 'queuectl.db');
+        }
+        
         const dir = dirname(dbPath);
         if(!existsSync(dir)){
             mkdirSync(dir,{recursive:true});
@@ -21,6 +28,7 @@ class Storage{
         id TEXT PRIMARY KEY,
         command TEXT NOT NULL,
         state TEXT NOT NULL,
+        priority INTEGER DEFAULT 0,
         attempts INTEGER DEFAULT 0,
         max_retries INTEGER DEFAULT 3,
         timeout INTEGER DEFAULT 60,
@@ -35,6 +43,11 @@ class Storage{
         output TEXT
       )
             `)
+        
+        this.db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_jobs_priority 
+        ON jobs(state, priority DESC, created_at ASC)
+        `)
 
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS dlq (
@@ -82,16 +95,17 @@ class Storage{
   insertJob(job){
     const stmt = this.db.prepare(`
       INSERT INTO jobs (
-        id, command, state, attempts, max_retries, timeout,
+        id, command, state, priority, attempts, max_retries, timeout,
         next_retry_at, run_at, locked_at, locked_by,
         created_at, updated_at, completed_at, error, output
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
         job.id,
         job.command,
         job.state,
+        job.priority || 0,
         job.attempts,
         job.max_retries,
         job.timeout, 
@@ -123,7 +137,7 @@ class Storage{
                 WHERE (state = 'pending' OR state = 'failed')
                 AND (next_retry_at IS NULL OR next_retry_at <= ?)
                 AND (run_at IS NULL OR run_at <= ?)
-                ORDER BY created_at ASC
+                ORDER BY priority DESC, created_at ASC
                 LIMIT 1
                 `).get(now,now);
 

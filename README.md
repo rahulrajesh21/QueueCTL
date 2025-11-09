@@ -36,8 +36,10 @@ Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets
 
 ### Bonus Features
 - **Job Timeout Handling** - Configurable timeout per job
+- **Job Priority Queues** - Priority-based job processing (0-3)
 - **Scheduled Jobs** - Delayed job execution with `run_at`
 - **Output Logging** - Capture and view job stdout/stderr
+- **Metrics & Stats** - Execution statistics and performance metrics
 - **Web Dashboard** - Real-time monitoring interface
 
 ## Installation
@@ -332,6 +334,60 @@ queuectl config set backoff-base 3
 queuectl config set default-timeout 300
 ```
 
+## Metrics
+
+View queue metrics and execution statistics:
+
+```bash
+queuectl metrics
+```
+
+**Metrics include:**
+- Job statistics (total, pending, processing, completed, failed, dead)
+- Success/failure rates
+- Execution time statistics (avg, min, max)
+- Retry statistics
+
+## Job Priority
+
+QueueCTL supports priority-based job processing. Jobs with higher priority are processed first.
+
+### Priority Levels
+
+| Priority | Value | Description | Use Case |
+|----------|-------|-------------|----------|
+| **LOW** | 0 | Default priority | Background tasks, cleanup jobs |
+| **NORMAL** | 1 | Standard priority | Regular processing tasks |
+| **HIGH** | 2 | Important tasks | User-facing operations |
+| **URGENT** | 3 | Critical tasks | System alerts, critical fixes |
+
+### Usage
+
+```bash
+# Low priority (default)
+queuectl enqueue '{"command":"echo Background task"}'
+queuectl enqueue '{"command":"echo Background task","priority":0}'
+
+# Normal priority
+queuectl enqueue '{"command":"echo Regular task","priority":1}'
+
+# High priority
+queuectl enqueue '{"command":"echo Important task","priority":2}'
+
+# Urgent priority (processed first)
+queuectl enqueue '{"command":"echo CRITICAL task","priority":3}'
+```
+
+### Processing Order
+
+1. Jobs are processed by **priority** (highest first)
+2. Within same priority, jobs are processed **FIFO** (first-in-first-out)
+3. Example order:
+   - Urgent (3) jobs first
+   - Then High (2) jobs
+   - Then Normal (1) jobs
+   - Finally Low (0) jobs
+
 ## Design Decisions & Trade-offs
 
 ### Why SQLite?
@@ -375,6 +431,11 @@ queuectl enqueue '{"command":"pg_dump mydb > backup.sql","timeout":300}'
 ### 4. Scheduled Reports
 ```bash
 queuectl enqueue '{"command":"node generate-report.js","run_at":"2025-11-10T09:00:00Z"}'
+```
+
+### 5. High Priority Job
+```bash
+queuectl enqueue '{"command":"node critical-task.js","priority":3}'
 ```
 
 ## Demo Video

@@ -331,3 +331,80 @@ footer {
 footer p {
   margin: 5px 0;
 }
+
+/* Navigation */
+.nav-links {
+  margin-top: 15px;
+  display: flex;
+  gap: 20px;
+}
+
+.nav-links a {
+  color: #888;
+  text-decoration: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  font-size: 0.9em;
+}
+
+.nav-links a:hover {
+  color: #fff;
+  background: #2a2a2a;
+}
+
+.nav-links a.active {
+  color: #fff;
+  background: #2a2a2a;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.metrics-grid-small {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.metric-card {
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  padding: 25px 20px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.metric-label {
+  font-size: 0.85em;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 2.5em;
+  font-weight: 700;
+  color: #00bfff;
+  margin-bottom: 8px;
+}
+
+.metric-value.success {
+  color: #00ff7f;
+}
+
+.metric-value.failure {
+  color: #ff6b6b;
+}
+
+.metric-detail {
+  font-size: 0.8em;
+  color: #666;
+  margin-top: 8px;
+}

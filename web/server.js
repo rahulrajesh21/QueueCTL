@@ -53,6 +53,15 @@ app.post('/api/dlq/:id/retry', (req, res) => {
     }
 });
 
+app.get('/api/metrics', (req, res) => {
+    try {
+        const metrics = queue.getMetrics();
+        res.json(metrics);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 app.listen(PORT,()=>{
-    console.log(`🚀 QueueCTL Dashboard running at http://localhost:${PORT}`);
+    console.log(`QueueCTL Dashboard running at http://localhost:${PORT}`);
 });

@@ -8,6 +8,7 @@ import { listCommand } from './cli/commands/list.js';
 import { dlqCommand } from './cli/commands/dlq.js';
 import { configCommand } from './cli/commands/config.js';
 import { logsCommand } from './cli/commands/logs.js';
+import { metricsCommand } from './cli/commands/metrics.js';
 
 program
   .name('queuectl')
@@ -22,4 +23,5 @@ listCommand(program);
 dlqCommand(program);
 configCommand(program);
 logsCommand(program);
+metricsCommand(program);
 program.parse(process.argv);

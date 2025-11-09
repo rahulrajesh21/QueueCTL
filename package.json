@@ -10,7 +10,8 @@
   "scripts": {
     "test": "./test.sh",
     "test:logs": "./tests/test-logs.sh",
-    "test:all": "npm run test && npm run test:logs",
+    "test:priority": "./tests/priority.test.sh",
+    "test:all": "npm run test && npm run test:logs && npm run test:priority",
     "dev": "node index.js",
     "start:web": "node web/server.js"
   },
