@@ -15,7 +15,9 @@
 
     <!-- Stats Section -->
     <section class="stats-section">
-      <h2>Statistics</h2>
+      <div class="stats-header">
+        <h2>Statistics</h2>
+      </div>
       <div class="stats-grid" id="stats">
         <div class="stat-card">
           <div class="stat-value">-</div>
@@ -42,14 +44,11 @@
 
     <!-- Jobs Section -->
     <section class="jobs-section">
-      <h2>Recent Jobs</h2>
-      <div class="filter-buttons">
-        <button class="filter-btn active" onclick="filterJobs(null)">All</button>
-        <button class="filter-btn" onclick="filterJobs('pending')">Pending</button>
-        <button class="filter-btn" onclick="filterJobs('processing')">Processing</button>
-        <button class="filter-btn" onclick="filterJobs('completed')">Completed</button>
-        <button class="filter-btn" onclick="filterJobs('failed')">Failed</button>
+      <div class="jobs-header">
+        <h2>Recent Jobs</h2>
+        <span class="section-subtitle">Latest queue activity</span>
       </div>
+      <div class="filter-buttons" id="filter-buttons"></div>
       <div id="jobs" class="jobs-list">
         <p class="loading">Loading jobs...</p>
       </div>
