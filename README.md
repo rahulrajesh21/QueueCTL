@@ -1,6 +1,28 @@
 # QueueCTL
 
-A production-grade CLI-based background job queue system with retry logic, Dead Letter Queue (DLQ) support, and web monitoring dashboard.
+QueueCTL is a lightweight Node.js CLI tool for managing background jobs with reliability and persistence. It supports automatic retries with exponential backoff and maintains a Dead Letter Queue (DLQ) for jobs that fail after multiple attempts.
+
+Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets you enqueue commands, run multiple workers, and monitor job states easily — making background task automation straightforward and dependable.
+
+## Table of Contents
+
+- [QueueCTL](#queuectl)
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [CLI Commands](#cli-commands)
+- [Configuration](#configuration)
+- [Job Lifecycle](#job-lifecycle)
+- [Architecture](#architecture)
+- [Testing](#testing)
+- [Design Decisions & Trade-offs](#design-decisions--trade-offs)
+- [Performance Characteristics](#performance-characteristics)
+- [Production Considerations](#production-considerations)
+- [Example Use Cases](#example-use-cases)
+- [Troubleshooting](#troubleshooting)
+- [Demo Video](#demo-video)
+- [Author](#author)
+
 
 ## Features
 
@@ -301,13 +323,109 @@ node index.js list
 node index.js dlq list
 ```
 
-## Configuration Options
+## Configuration
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `max-retries` | 3 | Maximum retry attempts before DLQ |
-| `backoff-base` | 2 | Base for exponential backoff calculation |
-| `default-timeout` | 60 | Default job timeout in seconds |
+QueueCTL provides configurable settings that control retry behavior, backoff timing, and job execution timeouts. Configuration is stored persistently in the SQLite database and applies globally to all workers.
+
+### Available Configuration Options
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `max-retries` | Integer | 3 | Maximum number of retry attempts before moving job to DLQ |
+| `backoff-base` | Integer | 2 | Base number for exponential backoff calculation (delay = base^attempts seconds) |
+| `default-timeout` | Integer | 60 | Default timeout in seconds for job execution |
+
+### How to Change Configuration
+
+**Set a configuration value:**
+```bash
+node index.js config set <key> <value>
+```
+
+**Examples:**
+```bash
+# Increase retry attempts to 5
+node index.js config set max-retries 5
+
+# Use slower backoff (3^attempts instead of 2^attempts)
+node index.js config set backoff-base 3
+
+# Set default timeout to 2 minutes
+node index.js config set default-timeout 120
+```
+
+**Get a specific configuration value:**
+```bash
+node index.js config get <key>
+
+# Example
+node index.js config get max-retries
+# Output: max-retries = 3
+```
+
+**List all configuration:**
+```bash
+node index.js config list
+
+# Output:
+# Configuration:
+#   max-retries = 3
+#   backoff-base = 2
+#   default-timeout = 60
+```
+
+### Configuration Behavior
+
+**Persistence:**
+- All configuration changes are stored in the SQLite database
+- Settings persist across application restarts
+- Changes take effect immediately for new jobs
+
+**Scope:**
+- Configuration is global and affects all workers
+- Existing jobs retain their original settings
+- Per-job overrides can be specified during enqueue:
+  ```bash
+  node index.js enqueue '{"command":"...","max_retries":10,"timeout":300}'
+  ```
+
+### Retry Calculation Examples
+
+**With `backoff-base = 2` and `max-retries = 3`:**
+```
+Attempt 1: Wait 2^1 = 2 seconds
+Attempt 2: Wait 2^2 = 4 seconds
+Attempt 3: Wait 2^3 = 8 seconds
+After 3 failed attempts: Job moves to DLQ
+```
+
+**With `backoff-base = 3` and `max-retries = 4`:**
+```
+Attempt 1: Wait 3^1 = 3 seconds
+Attempt 2: Wait 3^2 = 9 seconds
+Attempt 3: Wait 3^3 = 27 seconds
+Attempt 4: Wait 3^4 = 81 seconds
+After 4 failed attempts: Job moves to DLQ
+```
+
+### Configuration Best Practices
+
+**For fast-failing jobs (network requests, API calls):**
+```bash
+node index.js config set max-retries 5
+node index.js config set backoff-base 2
+```
+
+**For transient failures (temporary service outages):**
+```bash
+node index.js config set max-retries 3
+node index.js config set backoff-base 3
+```
+
+**For long-running jobs (data processing, backups):**
+```bash
+node index.js config set default-timeout 300
+```
 
 ## Design Decisions & Trade-offs
 
@@ -377,39 +495,10 @@ node index.js enqueue '{"command":"pg_dump mydb > backup.sql","timeout":300}'
 node index.js enqueue '{"command":"node generate-report.js","run_at":"2025-11-10T09:00:00Z"}'
 ```
 
-## Troubleshooting
-
-### Workers not processing jobs
-```bash
-# Check if workers are running
-ps aux | grep "worker"
-
-# Check job states
-node index.js status
-node index.js list --state pending
-```
-
-### Jobs stuck in processing
-```bash
-# Check for crashed workers (orphaned locks)
-# Manually reset if needed (requires DB access)
-sqlite3 data/queuectl.db "UPDATE jobs SET state='pending', locked_by=NULL WHERE state='processing'"
-```
-
-### Database locked errors
-```bash
-# Reduce number of concurrent workers
-node index.js worker stop
-node index.js worker start --count 2
-```
-
 ## Demo Video
 
 [Link to demo video will be added here]
 
-## License
-
-ISC
 
 ## Author
 
