@@ -21,7 +21,6 @@ Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets
 - [Example Use Cases](#example-use-cases)
 - [Troubleshooting](#troubleshooting)
 - [Demo Video](#demo-video)
-- [Author](#author)
 
 
 ## Features
