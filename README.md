@@ -448,11 +448,6 @@ node index.js enqueue '{"command":"node generate-report.js","run_at":"2025-11-10
 
 [Link to demo video will be added here]
 
-
-## Author
-
-[Your name/contact]
-
 ---
 
 Built for the QueueCTL Challenge
