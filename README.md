@@ -61,6 +61,21 @@ npm install
 npm install -g .
 ```
 
+### Database Location
+
+QueueCTL stores its database in `~/.queuectl/queuectl.db` by default. This ensures consistency between CLI commands and the web dashboard.
+
+**Custom database location:**
+```bash
+export QUEUECTL_DATA_DIR=~/my-custom-location
+queuectl enqueue '{"command":"echo test"}'
+```
+
+**Clean up all data:**
+```bash
+rm -rf ~/.queuectl
+```
+
 ## Quick Start
 
 ```bash
@@ -73,23 +88,39 @@ queuectl worker start
 # 3. Check status
 queuectl status
 
-# 4. View all commands
+# 4. Start web dashboard
+queuectl web
+
+# 5. View all commands
 queuectl --help
 ```
 
+Open http://localhost:3000 in your browser to view the dashboard.
+
 ### Web Dashboard
 
-Start the web monitoring dashboard:
+**Start the dashboard:**
 ```bash
-npm run start:web
+queuectl web
 ```
-Then open http://localhost:3000 in your browser.
+
+**Custom port:**
+```bash
+queuectl web --port 8080
+```
+
+**Access:**
+- Dashboard: http://localhost:3000
+- Metrics: http://localhost:3000/metrics.html
 
 **Features:**
-- Real-time job statistics
-- Job list with filtering
-- DLQ management
+- Real-time job statistics with color-coded cards
+- Job list with filtering by state
+- Priority badges on jobs
+- DLQ management with retry functionality
+- Separate metrics page with execution statistics
 - Auto-refresh every 5 seconds
+- Dark theme UI
 
 ## Architecture
 
@@ -126,10 +157,11 @@ queuectl/
 │   └── public/          # Frontend assets
 ├── tests/               # Test suite
 │   └── test-logs.sh     # Output logging tests
-├── data/                # SQLite database (auto-created)
 ├── index.js             # CLI entry point
 ├── test.sh              # Integration test suite
 └── package.json
+
+Note: Database is stored in `~/.queuectl/` (not in project directory)
 ```
 
 ### Key Components

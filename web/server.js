@@ -1,11 +1,16 @@
 import express from 'express';
 import queue from '../core/queue.js';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
-app.use(express.static('web/public'));
+app.use(express.static(join(__dirname, 'public')));
 
 app.get('/api/stats',(req,res)=>{
     try{
