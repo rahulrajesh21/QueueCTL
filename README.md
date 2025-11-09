@@ -422,29 +422,6 @@ node index.js config set default-timeout 300
 3. Moderate job volume (< 10k jobs/minute)
 4. Workers run on same machine as database
 
-## Performance Characteristics
-
-- **Throughput:** ~100-500 jobs/second (depends on job duration)
-- **Latency:** 1-2 seconds (polling interval)
-- **Concurrency:** Limited by SQLite (typically 10-50 workers)
-- **Storage:** Minimal (few KB per job)
-
-## Production Considerations
-
-### What's Production-Ready
-- Persistent storage with transactions  
-- Graceful shutdown handling  
-- Error handling and logging  
-- Configurable retry logic  
-- Job locking prevents duplicates  
-
-### What Would Need Enhancement
-- Monitoring & alerting (add Prometheus metrics)  
-- Distributed deployment (use Redis/PostgreSQL)  
-- Job prioritization (add priority queue)  
-- Rate limiting (prevent worker overload)  
-- Authentication (secure web dashboard)  
-
 ## Example Use Cases
 
 ### 1. Image Processing Pipeline
