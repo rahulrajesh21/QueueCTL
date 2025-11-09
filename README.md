@@ -172,39 +172,73 @@ Then open http://localhost:3000 in your browser.
 ## Architecture
 
 ### System Overview
-```
-┌─────────────┐
-│   CLI       │  ← User Interface
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│   Queue     │  ← Business Logic
-│  (Core)     │
-└──────┬──────┘
-       │
-┌──────▼──────┐
-│  Storage    │  ← SQLite Database
-│  (SQLite)   │
-└─────────────┘
 
-┌─────────────┐
-│  Worker 1   │  ← Background Processes
-├─────────────┤
-│  Worker 2   │
-├─────────────┤
-│  Worker N   │
-└─────────────┘
+```mermaid
+graph TB
+    subgraph "User Interface"
+        CLI[CLI Commands<br/>index.js]
+        WEB[Web Dashboard<br/>web/server.js]
+    end
+    
+    subgraph "Core Layer"
+        QUEUE[Queue Manager<br/>core/queue.js]
+        WORKER[Worker<br/>core/worker.js]
+        EXECUTOR[Job Executor<br/>core/executor.js]
+        RETRY[Retry Logic<br/>core/retry.js]
+    end
+    
+    subgraph "Storage Layer"
+        DB[(SQLite Database<br/>storage/sqlite.js)]
+        JOBS[Jobs Table]
+        DLQ[DLQ Table]
+        CONFIG[Config Table]
+    end
+    
+    CLI --> QUEUE
+    WEB --> QUEUE
+    QUEUE --> DB
+    WORKER --> QUEUE
+    WORKER --> EXECUTOR
+    EXECUTOR --> RETRY
+    RETRY --> QUEUE
+    DB --> JOBS
+    DB --> DLQ
+    DB --> CONFIG
+    
+    style CLI fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style WEB fill:#4A90E2,stroke:#2E5C8A,color:#fff
+    style QUEUE fill:#F5A623,stroke:#C17D11,color:#fff
+    style WORKER fill:#F5A623,stroke:#C17D11,color:#fff
+    style EXECUTOR fill:#F5A623,stroke:#C17D11,color:#fff
+    style RETRY fill:#F5A623,stroke:#C17D11,color:#fff
+    style DB fill:#7B68EE,stroke:#5A4BB5,color:#fff
+    style JOBS fill:#9B8FE8,stroke:#7B68EE,color:#fff
+    style DLQ fill:#9B8FE8,stroke:#7B68EE,color:#fff
+    style CONFIG fill:#9B8FE8,stroke:#7B68EE,color:#fff
 ```
 
 ### Job Lifecycle
-```
-pending → processing → completed
-   ↓           ↓
-   └─→ failed ─┘
-        ↓ (retry with backoff)
-        ↓ (max_retries exceeded)
-        ↓
-      dead (DLQ)
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: Job Enqueued
+    pending --> processing: Worker Claims Job
+    processing --> completed: Success
+    processing --> failed: Failure
+    failed --> pending: Retry (attempts < max)
+    failed --> dead: Max Retries Exceeded
+    dead --> [*]: Moved to DLQ
+    completed --> [*]
+    
+    note right of failed
+        Exponential backoff
+        delay = base^attempts
+    end note
+    
+    note right of dead
+        Stored in DLQ
+        Can be manually retried
+    end note
 ```
 
 ### Directory Structure
