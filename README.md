@@ -4,6 +4,10 @@ QueueCTL is a lightweight Node.js CLI tool for managing background jobs with rel
 
 Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets you enqueue commands, run multiple workers, and monitor job states easily — making background task automation straightforward and dependable.
 
+## Demo Video
+
+![How to use QueueCTL][https://drive.google.com/file/d/1xKyw0fBLFVEaf4vJn2hq2MnegpRBC9Vi/view?usp=share_link]
+
 ## Table of Contents
 
 - [QueueCTL](#queuectl)
@@ -469,11 +473,6 @@ queuectl enqueue '{"command":"node generate-report.js","run_at":"2025-11-10T09:0
 ```bash
 queuectl enqueue '{"command":"node critical-task.js","priority":3}'
 ```
-
-## Demo Video
-
-[https://drive.google.com/file/d/1xKyw0fBLFVEaf4vJn2hq2MnegpRBC9Vi/view?usp=share_link]
-
 ---
 
 Built for the QueueCTL Challenge
