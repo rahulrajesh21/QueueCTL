@@ -472,7 +472,7 @@ queuectl enqueue '{"command":"node critical-task.js","priority":3}'
 
 ## Demo Video
 
-[Link to demo video will be added here]
+[https://drive.google.com/file/d/1xKyw0fBLFVEaf4vJn2hq2MnegpRBC9Vi/view?usp=share_link]
 
 ---
 
