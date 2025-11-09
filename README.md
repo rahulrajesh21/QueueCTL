@@ -177,27 +177,7 @@ Then open http://localhost:3000 in your browser.
 
 ### Job Lifecycle
 
-```mermaid
-stateDiagram-v2
-    [*] --> pending: Job Enqueued
-    pending --> processing: Worker Claims Job
-    processing --> completed: Success
-    processing --> failed: Failure
-    failed --> pending: Retry (attempts < max)
-    failed --> dead: Max Retries Exceeded
-    dead --> [*]: Moved to DLQ
-    completed --> [*]
-    
-    note right of failed
-        Exponential backoff
-        delay = base^attempts
-    end note
-    
-    note right of dead
-        Stored in DLQ
-        Can be manually retried
-    end note
-```
+![Job Lifecycle](docs/images/lifecycle.png)
 
 ### Directory Structure
 ```
