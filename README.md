@@ -201,9 +201,11 @@ queuectl/
 ├── web/
 │   ├── server.js        # Web dashboard server
 │   └── public/          # Frontend assets
+├── tests/               # Test suite
+│   └── test-logs.sh     # Output logging tests
 ├── data/                # SQLite database (auto-created)
 ├── index.js             # CLI entry point
-├── test.sh              # Test suite
+├── test.sh              # Integration test suite
 └── package.json
 ```
 
@@ -263,9 +265,17 @@ SQLite's `busy_timeout` handles lock contention gracefully.
 ## Testing
 
 ### Run Test Suite
+
+**Integration Tests:**
 ```bash
 chmod +x test.sh
 ./test.sh
+```
+
+**Output Logging Tests:**
+```bash
+chmod +x tests/test-logs.sh
+./tests/test-logs.sh
 ```
 
 ### Test Coverage
