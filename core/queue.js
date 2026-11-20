@@ -4,8 +4,16 @@ import { calculateNextRetry } from "./retry.js";
 
 
 class Queue {
-    constructor(){
-        this.storage = storage;
+    constructor(customStorage = null){
+        this._customStorage = customStorage;
+    }
+
+    get storage() {
+        return this._customStorage || storage;
+    }
+
+    set storage(val) {
+        this._customStorage = val;
     }
 
 
@@ -18,8 +26,8 @@ class Queue {
         
         const defaultMaxRetries = parseInt(this.storage.getConfig('max_retries') || '3');
         let runAt = null;
-        if(jobData.run_at){
-            runAt = new Date(jobData.runAt).getTime();
+        if(jobData.run_at || jobData.runAt){
+            runAt = new Date(jobData.run_at || jobData.runAt).getTime();
             if(isNaN(runAt)){
                 throw new Error('Invalid run_at timestamp');
             }
@@ -120,6 +128,7 @@ class Queue {
             ...job,
             state: 'completed',
             updated_at: now,
+            completed_at: now,
             locked_by:  null,
             locked_at: null,
             output: output
@@ -254,4 +263,30 @@ class Queue {
     }
 }
 
-export default new Queue();
+let defaultQueue = null;
+
+export function getDefaultQueue() {
+    if (!defaultQueue) {
+        defaultQueue = new Queue();
+    }
+    return defaultQueue;
+}
+
+const lazyQueue = new Proxy({}, {
+    get(target, prop) {
+        const instance = getDefaultQueue();
+        const value = instance[prop];
+        if (typeof value === 'function') {
+            return value.bind(instance);
+        }
+        return value;
+    },
+    set(target, prop, value) {
+        const instance = getDefaultQueue();
+        instance[prop] = value;
+        return true;
+    }
+});
+
+export { Queue };
+export default lazyQueue;

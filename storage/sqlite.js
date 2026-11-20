@@ -7,8 +7,12 @@ class Storage{
     constructor(dbPath){
         // Use environment variable or default to home directory
         if (!dbPath) {
-            const dataDir = process.env.QUEUECTL_DATA_DIR || join(homedir(), '.queuectl');
-            dbPath = join(dataDir, 'queuectl.db');
+            if (process.env.QUEUECTL_DB_PATH) {
+                dbPath = process.env.QUEUECTL_DB_PATH;
+            } else {
+                const dataDir = process.env.QUEUECTL_DATA_DIR || join(homedir(), '.queuectl');
+                dbPath = join(dataDir, 'queuectl.db');
+            }
         }
         
         const dir = dirname(dbPath);
@@ -16,6 +20,7 @@ class Storage{
             mkdirSync(dir,{recursive:true});
         }
 
+        this.dbPath = dbPath;
         this.db  = new Database(dbPath)
         this.db.pragma('journal_mode = WAL');
         this.db.pragma('busy_timeout = 5000');
@@ -240,5 +245,30 @@ class Storage{
   }
 }
 
+let defaultStorage = null;
 
-export default new Storage();
+export function getDefaultStorage() {
+  if (!defaultStorage) {
+    defaultStorage = new Storage();
+  }
+  return defaultStorage;
+}
+
+const lazyStorage = new Proxy({}, {
+  get(target, prop) {
+    const instance = getDefaultStorage();
+    const value = instance[prop];
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  },
+  set(target, prop, value) {
+    const instance = getDefaultStorage();
+    instance[prop] = value;
+    return true;
+  }
+});
+
+export { Storage };
+export default lazyStorage;

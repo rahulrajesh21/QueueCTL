@@ -2,46 +2,60 @@ import queue from "./queue.js";
 import executor from "./executor.js";
 
 class Worker{
-    constructor(){
-        this.workerId = process.pid;
+    constructor(customQueue = null, customExecutor = null, options = {}){
+        this.workerId = options.workerId || process.pid;
         this.running = true;
+        this.queue = customQueue || queue;
+        this.executor = customExecutor || executor;
+        this.pollInterval = options.pollInterval || 1000;
+        this.exitOnStop = options.exitOnStop ?? false;
+        this.silent = options.silent ?? (process.env.NODE_ENV === 'test');
+    }
+
+    async processNextJob(){
+        const job = this.queue.claim(this.workerId);
+        if(!job){
+            return null;
+        }
+
+        if(!this.silent) console.log(`[Worker ${this.workerId}] Processing job ${job.id}: ${job.command}`);
+
+        const result = await this.executor.run(job.command, job.timeout);
+
+        if(result.success){
+            this.queue.complete(job.id, result.output);
+            if(!this.silent) console.log(`[Worker ${this.workerId}] Completed job ${job.id}`);
+        }else{
+            this.queue.fail(job.id, result.error, result.output);
+            if(!this.silent) console.log(`[Worker ${this.workerId}] Failed job ${job.id}: ${result.error?.message || result.error}`);
+        }
+        return { job, result };
     }
 
     async start(){
-        this.running = true
+        this.running = true;
 
-        console.log(`[Worker ${this.workerId}] Started`);
+        if(!this.silent) console.log(`[Worker ${this.workerId}] Started`);
         while(this.running){
             try{
-
-                const job = queue.claim(this.workerId);
-                if(job){
-                    console.log(`[Worker ${this.workerId}] Processing job ${job.id}: ${job.command}`);
-
-                    const result = await executor.run(job.command,job.timeout);
-
-                    if(result.success){
-                        queue.complete(job.id, result.output);
-                        console.log(`[Worker ${this.workerId}] Completed job ${job.id}`);
-                    }else{
-                        queue.fail(job.id,result.error,result.output);
-                        console.log(`[Worker ${this.workerId}] Failed job ${job.id}: ${result.error.message}`);
-                    }
-                }else{
-                    await this.sleep(1000);
+                const processed = await this.processNextJob();
+                if(!processed){
+                    await this.sleep(this.pollInterval);
                 }
             }catch(error){
-                console.log(`[Worker ${this.workerId}] Error:`,error.message);
-                await this.sleep(1000);
+                if(!this.silent) console.log(`[Worker ${this.workerId}] Error:`, error.message);
+                await this.sleep(this.pollInterval);
             }
         }
-        console.log(`[Worker ${this.workerId}] Stopped`);
-        process.exit(0);
+        if(!this.silent) console.log(`[Worker ${this.workerId}] Stopped`);
+        if (this.exitOnStop) {
+            process.exit(0);
+        }
     }
 
 
     stop(){
-        console.log(`[Worker ${this.workerId}] Stopping gracefully...`);
+        if(!this.silent) console.log(`[Worker ${this.workerId}] Stopping gracefully...`);
         this.running = false;
     }
 
