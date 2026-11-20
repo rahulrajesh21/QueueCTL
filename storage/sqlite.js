@@ -39,6 +39,7 @@ class Storage{
         timeout INTEGER DEFAULT 60,
         next_retry_at INTEGER,
         run_at INTEGER,
+        started_at INTEGER,
         locked_at INTEGER,
         locked_by TEXT,
         created_at INTEGER NOT NULL,
@@ -59,9 +60,12 @@ class Storage{
         id TEXT PRIMARY KEY,
         command TEXT NOT NULL,
         state TEXT NOT NULL,
+        priority INTEGER DEFAULT 0,
         attempts INTEGER DEFAULT 0,
         max_retries INTEGER DEFAULT 3,
+        timeout INTEGER DEFAULT 60,
         next_retry_at INTEGER,
+        run_at INTEGER,
         locked_at INTEGER,
         locked_by TEXT,
         created_at INTEGER NOT NULL,
@@ -78,7 +82,20 @@ class Storage{
         value TEXT NOT NULL
       )
     `);
+
+    this.ensureColumn('jobs', 'started_at', 'INTEGER');
+    this.ensureColumn('dlq', 'priority', 'INTEGER DEFAULT 0');
+    this.ensureColumn('dlq', 'timeout', 'INTEGER DEFAULT 60');
+    this.ensureColumn('dlq', 'run_at', 'INTEGER');
+
     this.setDefaultConfig();
+    }
+
+    ensureColumn(table, column, definition) {
+      const columns = this.db.prepare(`PRAGMA table_info(${table})`).all();
+      if (!columns.some(col => col.name === column)) {
+        this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+      }
     }
 
     setDefaultConfig() {
@@ -101,30 +118,75 @@ class Storage{
     const stmt = this.db.prepare(`
       INSERT INTO jobs (
         id, command, state, priority, attempts, max_retries, timeout,
-        next_retry_at, run_at, locked_at, locked_by,
+        next_retry_at, run_at, started_at, locked_at, locked_by,
         created_at, updated_at, completed_at, error, output
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
         job.id,
         job.command,
         job.state,
-        job.priority || 0,
+        job.priority ?? 0,
         job.attempts,
         job.max_retries,
-        job.timeout, 
-        job.next_retry_at,
-        job.run_at,
-        job.locked_at,
-        job.locked_by,
+        job.timeout ?? 60,
+        job.next_retry_at ?? null,
+        job.run_at ?? null,
+        job.started_at ?? null,
+        job.locked_at ?? null,
+        job.locked_by ?? null,
         job.created_at,
         job.updated_at,
-        job.completed_at,
-        job.error,
-        job.output || null
-      )
+        job.completed_at ?? null,
+        job.error ?? null,
+        job.output ?? null
+      );
       return job;
+  }
+
+  updateJob(job){
+    const stmt = this.db.prepare(`
+      UPDATE jobs
+      SET command = ?,
+          state = ?,
+          priority = ?,
+          attempts = ?,
+          max_retries = ?,
+          timeout = ?,
+          next_retry_at = ?,
+          run_at = ?,
+          started_at = ?,
+          locked_at = ?,
+          locked_by = ?,
+          created_at = ?,
+          updated_at = ?,
+          completed_at = ?,
+          error = ?,
+          output = ?
+      WHERE id = ?
+    `);
+
+    stmt.run(
+      job.command,
+      job.state,
+      job.priority ?? 0,
+      job.attempts,
+      job.max_retries,
+      job.timeout ?? 60,
+      job.next_retry_at ?? null,
+      job.run_at ?? null,
+      job.started_at ?? null,
+      job.locked_at ?? null,
+      job.locked_by ?? null,
+      job.created_at,
+      job.updated_at,
+      job.completed_at ?? null,
+      job.error ?? null,
+      job.output ?? null,
+      job.id
+    );
+    return job;
   }
 
   deleteJob(jobId){
@@ -153,20 +215,22 @@ class Storage{
                 this.db.prepare(`
                     UPDATE jobs
                     SET state = 'processing',
+                        started_at = ?,
                         locked_by = ?,
                         locked_at = ?,
                         updated_at = ?
                     WHERE id = ?
-                    `).run(workerId, now, now, availableJob.id);
+                    `).run(now, workerId, now, now, availableJob.id);
 
                     return {
                         ...availableJob,
                         state: 'processing',
+                        started_at: now,
                         locked_by: workerId,
                         locked_at: now,
                         updated_at: now
                     };
-    })();
+    }).immediate();
   }
 
 
@@ -174,27 +238,46 @@ class Storage{
   insertIntoDLQ(job){
     const stmt = this.db.prepare(`
         INSERT INTO dlq(
-         id, command, state, attempts, max_retries,
-        next_retry_at, locked_at, locked_by,
+         id, command, state, priority, attempts, max_retries, timeout,
+        next_retry_at, run_at, locked_at, locked_by,
         created_at, updated_at, completed_at, error, output
-        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
       stmt.run(
         job.id,
         job.command,
         job.state,
+        job.priority ?? 0,
         job.attempts,
         job.max_retries,
-        job.next_retry_at,
-        job.locked_at,
-        job.locked_by,
+        job.timeout ?? 60,
+        job.next_retry_at ?? null,
+        job.run_at ?? null,
+        job.locked_at ?? null,
+        job.locked_by ?? null,
         job.created_at,
         job.updated_at,
-        job.completed_at,
-        job.error,
-        job.output || null
+        job.completed_at ?? null,
+        job.error ?? null,
+        job.output ?? null
       );
+  }
+
+  moveJobToDLQ(deadJob){
+    return this.db.transaction(() => {
+      this.insertIntoDLQ(deadJob);
+      this.deleteJob(deadJob.id);
+      return deadJob;
+    }).immediate();
+  }
+
+  requeueFromDLQ(retriedJob){
+    return this.db.transaction(() => {
+      this.insertJob(retriedJob);
+      this.deleteFromDLQ(retriedJob.id);
+      return retriedJob;
+    }).immediate();
   }
 
   listJob(state = null){

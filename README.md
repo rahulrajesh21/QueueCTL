@@ -57,8 +57,8 @@ Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets
 ### Setup
 ```bash
 # Clone the repository
-git clone <your-repo-url>
-cd queuectl
+git clone https://github.com/rahulrajesh21/QueueCTL.git
+cd QueueCTL
 
 # Install dependencies
 npm install
@@ -161,7 +161,15 @@ queuectl/
 ├── web/
 │   ├── server.js        # Web dashboard server
 │   └── public/          # Frontend assets
-├── tests/               # Test suite
+├── tests/               # Automated Jest & shell test suites
+│   ├── helpers/
+│   │   └── test-db.js   # Isolated temp SQLite WAL test harness
+│   ├── job-lifecycle.test.js
+│   ├── retry-dlq.test.js
+│   ├── job-timeout.test.js
+│   ├── concurrency.test.js
+│   ├── persistence.test.js
+│   ├── validation-edge-cases.test.js
 │   └── test-logs.sh     # Output logging tests
 ├── index.js             # CLI entry point
 ├── test.sh              # Integration test suite
@@ -222,51 +230,6 @@ COMMIT
 ```
 
 SQLite's `busy_timeout` handles lock contention gracefully.
-
-## Testing
-
-### Run Test Suite
-
-**Integration Tests:**
-```bash
-npm test
-```
-
-**Output Logging Tests:**
-```bash
-npm run test:logs
-```
-
-**Run All Tests:**
-```bash
-npm run test:all
-```
-
-### Test Coverage
-- ✅ Basic job completion
-- ✅ Multiple workers without duplication
-- ✅ Invalid command handling
-- ✅ Retry with exponential backoff
-- ✅ DLQ functionality
-- ✅ Data persistence across restarts
-- ✅ Configuration management
-- ✅ Output logging
-
-### Manual Testing
-```bash
-# Terminal 1: Start worker
-queuectl worker start
-
-# Terminal 2: Enqueue jobs
-queuectl enqueue '{"command":"echo Test 1"}'
-queuectl enqueue '{"command":"sleep 2"}'
-queuectl enqueue '{"command":"invalid_cmd","max_retries":1}'
-
-# Check status
-queuectl status
-queuectl list
-queuectl dlq list
-```
 
 ## Configuration
 

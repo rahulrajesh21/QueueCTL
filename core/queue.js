@@ -18,13 +18,16 @@ class Queue {
 
 
     enqueue(jobData){
-        if(!jobData.command){
+        if(!jobData || typeof jobData !== 'object'){
+            throw new Error('Job payload must be an object');
+        }
+        if(typeof jobData.command !== 'string' || !jobData.command.trim()){
             throw new Error('Command is required');
         }
 
         const now = Date.now();
         
-        const defaultMaxRetries = parseInt(this.storage.getConfig('max_retries') || '3');
+        const defaultMaxRetries = parseInt(this.storage.getConfig('max_retries') || '3', 10);
         let runAt = null;
         if(jobData.run_at || jobData.runAt){
             runAt = new Date(jobData.run_at || jobData.runAt).getTime();
@@ -32,12 +35,24 @@ class Queue {
                 throw new Error('Invalid run_at timestamp');
             }
         }
-        const defaultTimeout = parseInt(this.storage.getConfig('default_timeout') || '60');
+        const defaultTimeout = parseInt(this.storage.getConfig('default_timeout') || '60', 10);
         
         // Validate priority
-        let priority = jobData.priority !== undefined ? jobData.priority : 0;
-        if (priority < 0 || priority > 3) {
+        const priority = jobData.priority ?? 0;
+        if (!Number.isInteger(priority) || priority < 0 || priority > 3) {
             throw new Error('Priority must be between 0 (low) and 3 (urgent)');
+        }
+
+        // Validate max_retries (allow 0 for no retries)
+        const maxRetries = jobData.max_retries ?? defaultMaxRetries;
+        if (!Number.isInteger(maxRetries) || maxRetries < 0) {
+            throw new Error('max_retries must be a non-negative integer');
+        }
+
+        // Validate timeout
+        const timeout = jobData.timeout ?? defaultTimeout;
+        if (typeof timeout !== 'number' || !Number.isFinite(timeout) || timeout <= 0) {
+            throw new Error('timeout must be a positive number');
         }
         
         const job = {
@@ -46,10 +61,11 @@ class Queue {
             state: 'pending',
             priority: priority,
             attempts: 0,
-            max_retries: jobData.max_retries || defaultMaxRetries,
-            timeout: jobData.timeout || defaultTimeout,
+            max_retries: maxRetries,
+            timeout: timeout,
             next_retry_at: null,
-            run_at:runAt,
+            run_at: runAt,
+            started_at: null,
             locked_at: null,
             locked_by: null,
             created_at: now,
@@ -76,24 +92,25 @@ class Queue {
         }
         const attempts = job.attempts + 1;
         const now = Date.now();
+        const errorMessage = error ? (error.message || String(error)) : job.error;
 
         if(attempts >= job.max_retries){
-           
-            const failedJob = {
+            const deadJob = {
                 ...job,
+                state: 'dead',
                 attempts: attempts,
-                error: error.message || String(error),
-                output: output,
+                error: errorMessage,
+                output: output ?? job.output,
                 updated_at: now,
+                locked_at: null,
+                locked_by: null,
+                next_retry_at: null
             };
-            this.storage.deleteJob(jobId);
-            this.storage.insertJob(failedJob);
-            return this.moveToDLQ(jobId, error, output);
+            return this.storage.moveJobToDLQ(deadJob);
         }
 
-        const backoffBase = parseInt(this.storage.getConfig('backoff_base') || '2');
-        
-        const nextRetryAt = calculateNextRetry(attempts, backoffBase);
+        const backoffBase = parseInt(this.storage.getConfig('backoff_base') || '2', 10);
+        const nextRetryAt = calculateNextRetry(attempts, backoffBase, now);
 
         const updatedJob = {
             ...job,
@@ -101,14 +118,13 @@ class Queue {
             attempts: attempts,
             next_retry_at: nextRetryAt,
             updated_at: now,
-            error: error.message || String(error),
+            error: errorMessage,
             output: output,
             locked_at: null,
             locked_by: null
         };
 
-        this.storage.deleteJob(jobId);
-        this.storage.insertJob(updatedJob);
+        this.storage.updateJob(updatedJob);
 
         return updatedJob;
 
@@ -120,8 +136,7 @@ class Queue {
         const job = this.storage.getJob(jobId);
 
         if(!job){
-            throw new Error(`Job ${jobId} not found`)
-
+            throw new Error(`Job ${jobId} not found`);
         }
 
         const updatedJob = {
@@ -129,16 +144,16 @@ class Queue {
             state: 'completed',
             updated_at: now,
             completed_at: now,
-            locked_by:  null,
+            locked_by: null,
             locked_at: null,
             output: output
-        }
+        };
 
-        this.storage.deleteJob(jobId);
-        this.storage.insertJob(updatedJob);
+        this.storage.updateJob(updatedJob);
+        return updatedJob;
     }
 
-    moveToDLQ(jobId, error = null,output = null){
+    moveToDLQ(jobId, error = null, output = null){
         const job = this.storage.getJob(jobId);
         if(!job){
             throw new Error(`Job ${jobId} not found`);
@@ -150,17 +165,14 @@ class Queue {
             ...job,
             state: 'dead',
             error: error ? (error.message || String(error)) : job.error,
-             output: output || job.output,
+            output: output ?? job.output,
             updated_at: now,
             locked_by: null,
             locked_at: null,
             next_retry_at: null
         };
 
-        this.storage.insertIntoDLQ(deadJob);
-        this.storage.deleteJob(jobId);
-
-        return deadJob;
+        return this.storage.moveJobToDLQ(deadJob);
     }
 
     listJobs(state = null){
@@ -201,22 +213,26 @@ class Queue {
         }
         
         const now = Date.now();
+        const defaultTimeout = parseInt(this.storage.getConfig('default_timeout') || '60', 10);
         
         const retriedJob = {
             ...job,
             state: 'pending',
+            priority: job.priority ?? 0,
             attempts: 0,
+            timeout: job.timeout ?? defaultTimeout,
             next_retry_at: null,
+            run_at: null,
+            started_at: null,
+            completed_at: null,
             error: null,
+            output: null,
             locked_by: null,
             locked_at: null,
             updated_at: now
         };
         
-        this.storage.insertJob(retriedJob);
-        this.storage.deleteFromDLQ(jobId);
-        
-        return retriedJob;
+        return this.storage.requeueFromDLQ(retriedJob);
     }
 
     listDLQ(){
@@ -235,11 +251,11 @@ class Queue {
         
         if (completedJobs.length > 0) {
             const executionTimes = completedJobs
-                .filter(j => j.updated_at && (j.locked_at || j.created_at))
+                .filter(j => (j.completed_at || j.updated_at) && (j.started_at || j.locked_at || j.created_at))
                 .map(j => {
-                    // Use locked_at if available (actual execution time), otherwise fall back to created_at
-                    const startTime = j.locked_at || j.created_at;
-                    return (j.updated_at - startTime) / 1000;
+                    const startTime = j.started_at || j.locked_at || j.created_at;
+                    const endTime = j.completed_at || j.updated_at;
+                    return Math.max(0, (endTime - startTime) / 1000);
                 });
             
             if (executionTimes.length > 0) {
@@ -249,9 +265,10 @@ class Queue {
             }
         }
         
-        // Retry statistics
-        const jobsWithRetries = allJobs.filter(j => j.attempts > 0).length;
-        const totalRetries = allJobs.reduce((sum, j) => sum + j.attempts, 0);
+        // Retry statistics across active jobs and DLQ
+        const combinedJobs = [...allJobs, ...dlqJobs];
+        const jobsWithRetries = combinedJobs.filter(j => j.attempts > 0).length;
+        const totalRetries = combinedJobs.reduce((sum, j) => sum + (j.attempts || 0), 0);
         
         return {
             avgExecutionTime,
