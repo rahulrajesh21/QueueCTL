@@ -1,5 +1,7 @@
 # QueueCTL
 
+[![CI](https://github.com/rahulrajesh21/QueueCTL/actions/workflows/ci.yml/badge.svg)](https://github.com/rahulrajesh21/QueueCTL/actions/workflows/ci.yml)
+
 QueueCTL is a lightweight Node.js CLI tool for managing background jobs with reliability and persistence. It supports automatic retries with exponential backoff and maintains a Dead Letter Queue (DLQ) for jobs that fail after multiple attempts.
 
 Built with a focus on simplicity, modularity, and maintainability, QueueCTL lets you enqueue commands, run multiple workers, and monitor job states easily — making background task automation straightforward and dependable.
@@ -423,6 +425,43 @@ queuectl enqueue '{"command":"echo CRITICAL task","priority":3}'
    - Then High (2) jobs
    - Then Normal (1) jobs
    - Finally Low (0) jobs
+
+## Testing
+
+QueueCTL features a production-grade automated test suite written with **Jest** targeting real behavior against SQLite with zero mock-only compromises.
+
+### Database Isolation Guarantee
+Every test runs in total isolation using a dedicated temporary SQLite database created inside `os.tmpdir()` (`queuectl-test-*`). The database and WAL journals are automatically torn down in `afterEach`, ensuring 100% deterministic test execution without polluting or touching the local user database (`~/.queuectl/queuectl.db`).
+
+### Running Tests
+
+Run the full automated test suite:
+```bash
+npm test
+```
+
+Run tests with test coverage reporting:
+```bash
+npm run test:coverage
+```
+
+Run legacy end-to-end bash verification scripts:
+```bash
+npm run test:bash
+npm run test:logs
+npm run test:priority
+```
+
+### Test Coverage Highlights
+
+1. **Job Lifecycle & State Transitions**: Verifies job persistence from `pending` -> `processing` -> `completed` with output capture, execution timestamps, and worker locking.
+2. **Exponential Backoff**: Validates accurate computation and scheduling of exponential retry delays (`delay = base ^ attempts * 1000ms`).
+3. **Dead Letter Queue (DLQ) Isolation**: Validates that jobs exceeding `max_retries` are moved to the DLQ with full failure metadata and removed from the active queue.
+4. **DLQ Recovery & Replay**: Verifies that dead jobs can be recovered back into the active queue with reset attempt counts and executed cleanly.
+5. **Job Timeouts & Child Process Termination**: Tests process termination using SIGTERM/SIGKILL when commands exceed their configured execution timeout.
+6. **SQLite WAL & Concurrency Safety**: Simulates multiple concurrent workers polling and claiming jobs simultaneously under SQLite WAL mode, verifying atomic locking and 0 duplicate executions.
+7. **Persistence Across Restarts**: Validates that pending jobs, priorities, and configuration settings survive storage disconnects and process restarts.
+8. **Validation & Edge Cases**: Asserts graceful error handling and clear error messages on malformed inputs, out-of-range priorities, and invalid timestamps.
 
 ## Design Decisions & Trade-offs
 
